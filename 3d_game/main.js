@@ -30,7 +30,7 @@ directionalLight.shadow.camera.bottom = -20;
 scene.add(directionalLight);
 
 // Create field
-const fieldGeometry = new THREE.PlaneGeometry(50, 50);
+const fieldGeometry = new THREE.PlaneGeometry(20, 20);
 const fieldMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x7cfc00, // Lawn green
     side: THREE.DoubleSide 
@@ -40,6 +40,91 @@ field.rotation.x = -Math.PI / 2; // Make it horizontal
 field.position.y = -0.5; // Slightly below the character
 field.receiveShadow = true;
 scene.add(field);
+
+// Create hallways
+const hallwayWidth = 5;
+const hallwayLength = 30;
+
+// North hallway
+const northHallGeometry = new THREE.PlaneGeometry(hallwayWidth, hallwayLength);
+const northHallMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x8B8878, // Gray color for hallway
+    side: THREE.DoubleSide 
+});
+const northHall = new THREE.Mesh(northHallGeometry, northHallMaterial);
+northHall.rotation.x = -Math.PI / 2;
+northHall.position.set(0, -0.49, -hallwayLength/2 - 10); // Positioned north of central area
+northHall.receiveShadow = true;
+scene.add(northHall);
+
+// South hallway
+const southHall = northHall.clone();
+southHall.position.set(0, -0.49, hallwayLength/2 + 10); // Positioned south of central area
+scene.add(southHall);
+
+// East hallway
+const eastHallGeometry = new THREE.PlaneGeometry(hallwayLength, hallwayWidth);
+const eastHallMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x8B8878, // Gray color for hallway
+    side: THREE.DoubleSide 
+});
+const eastHall = new THREE.Mesh(eastHallGeometry, eastHallMaterial);
+eastHall.rotation.x = -Math.PI / 2;
+eastHall.position.set(hallwayLength/2 + 10, -0.49, 0); // Positioned east of central area
+eastHall.receiveShadow = true;
+scene.add(eastHall);
+
+// West hallway
+const westHall = eastHall.clone();
+westHall.position.set(-hallwayLength/2 - 10, -0.49, 0); // Positioned west of central area
+scene.add(westHall);
+
+// Create walls
+const wallHeight = 3;
+const wallThickness = 0.5;
+
+// North hallway walls
+const northHallLeftWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, hallwayLength);
+const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xA0522D }); // Brown walls
+const northHallLeftWall = new THREE.Mesh(northHallLeftWallGeometry, wallMaterial);
+northHallLeftWall.position.set(-hallwayWidth/2 - wallThickness/2, wallHeight/2 - 0.5, -hallwayLength/2 - 10);
+northHallLeftWall.receiveShadow = true;
+northHallLeftWall.castShadow = true;
+scene.add(northHallLeftWall);
+
+const northHallRightWall = northHallLeftWall.clone();
+northHallRightWall.position.set(hallwayWidth/2 + wallThickness/2, wallHeight/2 - 0.5, -hallwayLength/2 - 10);
+scene.add(northHallRightWall);
+
+// South hallway walls
+const southHallLeftWall = northHallLeftWall.clone();
+southHallLeftWall.position.set(-hallwayWidth/2 - wallThickness/2, wallHeight/2 - 0.5, hallwayLength/2 + 10);
+scene.add(southHallLeftWall);
+
+const southHallRightWall = northHallLeftWall.clone();
+southHallRightWall.position.set(hallwayWidth/2 + wallThickness/2, wallHeight/2 - 0.5, hallwayLength/2 + 10);
+scene.add(southHallRightWall);
+
+// East hallway walls
+const eastHallLeftWallGeometry = new THREE.BoxGeometry(hallwayLength, wallHeight, wallThickness);
+const eastHallLeftWall = new THREE.Mesh(eastHallLeftWallGeometry, wallMaterial);
+eastHallLeftWall.position.set(hallwayLength/2 + 10, wallHeight/2 - 0.5, -hallwayWidth/2 - wallThickness/2);
+eastHallLeftWall.receiveShadow = true;
+eastHallLeftWall.castShadow = true;
+scene.add(eastHallLeftWall);
+
+const eastHallRightWall = eastHallLeftWall.clone();
+eastHallRightWall.position.set(hallwayLength/2 + 10, wallHeight/2 - 0.5, hallwayWidth/2 + wallThickness/2);
+scene.add(eastHallRightWall);
+
+// West hallway walls
+const westHallLeftWall = eastHallLeftWall.clone();
+westHallLeftWall.position.set(-hallwayLength/2 - 10, wallHeight/2 - 0.5, -hallwayWidth/2 - wallThickness/2);
+scene.add(westHallLeftWall);
+
+const westHallRightWall = eastHallLeftWall.clone();
+westHallRightWall.position.set(-hallwayLength/2 - 10, wallHeight/2 - 0.5, hallwayWidth/2 + wallThickness/2);
+scene.add(westHallRightWall);
 
 // Character
 const characterGroup = new THREE.Group();
@@ -64,7 +149,7 @@ characterGroup.add(head);
 // Zombies
 const zombies = [];
 const zombieSpeed = 0.05;
-const zombieSpawnRadius = 20;
+const zombieSpawnDistance = 30; // Distance from center to spawn zombies
 const maxZombies = 10;
 const zombieDetectionRadius = 15;
 
@@ -100,19 +185,58 @@ function createZombie(x, z) {
 
 // Spawn initial zombies
 for (let i = 0; i < 5; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = zombieSpawnRadius * Math.sqrt(Math.random());
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
+    // Choose random hallway end
+    const hallwayEnd = Math.floor(Math.random() * 4);
+    let x = 0, z = 0;
+    
+    switch(hallwayEnd) {
+        case 0: // North hallway end
+            x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+            z = -(hallwayLength + 10);
+            break;
+        case 1: // South hallway end
+            x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+            z = hallwayLength + 10;
+            break;
+        case 2: // East hallway end
+            x = hallwayLength + 10;
+            z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+            break;
+        case 3: // West hallway end
+            x = -(hallwayLength + 10);
+            z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+            break;
+    }
+    
     createZombie(x, z);
 }
 
 // Function to spawn new zombies
 function spawnZombie() {
     if (zombies.length < maxZombies) {
-        const angle = Math.random() * Math.PI * 2;
-        const x = characterGroup.position.x + Math.cos(angle) * zombieSpawnRadius;
-        const z = characterGroup.position.z + Math.sin(angle) * zombieSpawnRadius;
+        // Choose random hallway end
+        const hallwayEnd = Math.floor(Math.random() * 4);
+        let x = 0, z = 0;
+        
+        switch(hallwayEnd) {
+            case 0: // North hallway end
+                x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                z = -(hallwayLength + 10);
+                break;
+            case 1: // South hallway end
+                x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                z = hallwayLength + 10;
+                break;
+            case 2: // East hallway end
+                x = hallwayLength + 10;
+                z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                break;
+            case 3: // West hallway end
+                x = -(hallwayLength + 10);
+                z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                break;
+        }
+        
         createZombie(x, z);
     }
 }
@@ -228,10 +352,29 @@ function restartGame() {
     
     // Spawn initial zombies
     for (let i = 0; i < 5; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = zombieSpawnRadius * Math.sqrt(Math.random());
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
+        // Choose random hallway end
+        const hallwayEnd = Math.floor(Math.random() * 4);
+        let x = 0, z = 0;
+        
+        switch(hallwayEnd) {
+            case 0: // North hallway end
+                x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                z = -(hallwayLength + 10);
+                break;
+            case 1: // South hallway end
+                x = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                z = hallwayLength + 10;
+                break;
+            case 2: // East hallway end
+                x = hallwayLength + 10;
+                z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                break;
+            case 3: // West hallway end
+                x = -(hallwayLength + 10);
+                z = (Math.random() * hallwayWidth) - (hallwayWidth/2);
+                break;
+        }
+        
         createZombie(x, z);
     }
 }
@@ -267,14 +410,28 @@ function animate() {
                 characterGroup.rotation.y = angle;
             }
             
-            // Move in the facing direction
-            characterGroup.position.x += direction.x * speed;
-            characterGroup.position.z += direction.z * speed;
+            // Store current position
+            const newX = characterGroup.position.x + direction.x * speed;
+            const newZ = characterGroup.position.z + direction.z * speed;
             
-            // Keep character in bounds
-            const fieldSize = 25; // Half of field size
-            characterGroup.position.x = Math.max(-fieldSize, Math.min(fieldSize, characterGroup.position.x));
-            characterGroup.position.z = Math.max(-fieldSize, Math.min(fieldSize, characterGroup.position.z));
+            // Check if position is valid (in hallways or central area)
+            const centralAreaSize = 10; // Half of central area size
+            const insideCentralArea = Math.abs(newX) <= centralAreaSize && Math.abs(newZ) <= centralAreaSize;
+            
+            // Check if in a hallway
+            // North hallway
+            const inNorthHallway = Math.abs(newX) <= hallwayWidth/2 && newZ <= -10 && newZ >= -(hallwayLength + 10);
+            // South hallway
+            const inSouthHallway = Math.abs(newX) <= hallwayWidth/2 && newZ >= 10 && newZ <= (hallwayLength + 10);
+            // East hallway
+            const inEastHallway = Math.abs(newZ) <= hallwayWidth/2 && newX >= 10 && newX <= (hallwayLength + 10);
+            // West hallway
+            const inWestHallway = Math.abs(newZ) <= hallwayWidth/2 && newX <= -10 && newX >= -(hallwayLength + 10);
+            
+            if (insideCentralArea || inNorthHallway || inSouthHallway || inEastHallway || inWestHallway) {
+                characterGroup.position.x = newX;
+                characterGroup.position.z = newZ;
+            }
             
             // Update camera to follow character
             camera.position.x = characterGroup.position.x;
@@ -299,8 +456,27 @@ function animate() {
                     zombie.group.rotation.y = angle;
                     
                     // Move towards player
-                    zombiePos.x += Math.sin(angle) * zombieSpeed;
-                    zombiePos.z += Math.cos(angle) * zombieSpeed;
+                    const newX = zombiePos.x + Math.sin(angle) * zombieSpeed;
+                    const newZ = zombiePos.z + Math.cos(angle) * zombieSpeed;
+                    
+                    // Check if new position is valid (in hallways or central area)
+                    const centralAreaSize = 10; // Half of central area size
+                    const insideCentralArea = Math.abs(newX) <= centralAreaSize && Math.abs(newZ) <= centralAreaSize;
+                    
+                    // Check if in a hallway
+                    // North hallway
+                    const inNorthHallway = Math.abs(newX) <= hallwayWidth/2 && newZ <= -10 && newZ >= -(hallwayLength + 10);
+                    // South hallway
+                    const inSouthHallway = Math.abs(newX) <= hallwayWidth/2 && newZ >= 10 && newZ <= (hallwayLength + 10);
+                    // East hallway
+                    const inEastHallway = Math.abs(newZ) <= hallwayWidth/2 && newX >= 10 && newX <= (hallwayLength + 10);
+                    // West hallway
+                    const inWestHallway = Math.abs(newZ) <= hallwayWidth/2 && newX <= -10 && newX >= -(hallwayLength + 10);
+                    
+                    if (insideCentralArea || inNorthHallway || inSouthHallway || inEastHallway || inWestHallway) {
+                        zombiePos.x = newX;
+                        zombiePos.z = newZ;
+                    }
                     
                     // Check collision with player
                     if (distance < 1) {
